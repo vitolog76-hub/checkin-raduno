@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Check-in Raduno Aquile Alfee</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { -webkit-user-select: none; user-select: none; }
+    #reader { width: 100%; }
+    #reader video { border-radius: 12px; }
+    @keyframes flashGreen { 0% { background-color: #dcfce7; } 100% { background-color: #ffffff; } }
+    @keyframes flashRed { 0% { background-color: #fee2e2; } 100% { background-color: #ffffff; } }
+    .flash-green { animation: flashGreen 1.5s ease-out; }
+    .flash-red { animation: flashRed 1.5s ease-out; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+
+  <header class="bg-white border-b-4 border-red-600 shadow-md p-3 mb-4 text-center rounded-xl">
+    <h1 class="text-xl font-bold text-red-600">Check-in Raduno Aquile Alfee</h1>
+    <p class="text-xs text-gray-600">Inquadra il QR code del partecipante</p>
+  </header>
+
+  <div id="scannerBox" class="bg-white rounded-2xl shadow-lg p-3 mb-4">
+    <div id="reader"></div>
+  </div>
+
+  <div id="resultBox" class="hidden bg-white rounded-2xl shadow-lg p-6 text-center"></div>
+
+  <div id="manualBox" class="bg-white rounded-xl shadow p-4">
+    <p class="text-sm font-medium text-gray-700 mb-2">Problemi con il QR? Inserisci il codice manualmente:</p>
+    <div class="flex gap-2">
+      <input type="text" id="manualCode" placeholder="MGC2027-XXXXXX" class="flex-1 bg-gray-50 border border-gray-300 rounded-lg p-3 text-gray-900 focus:ring-2 focus:ring-red-600 outline-none uppercase font-mono text-lg">
+      <button onclick="manualCheckIn()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-6 rounded-lg transition">Cerca</button>
+    </div>
+  </div>
+
+  <script>
+    // ⚠️ INCOLLA QUI L'URL DELLA TUA WEB APP DI APPS SCRIPT (finisce con /exec)
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzIOsvqDCWi-MRwCqwtpMfGHoVqq7FjLrtqGzjIEe_A9gfXypwRqNPRhqrDFHXo0Iu8kQ/exec';
+
+    const qr = new Html5Qrcode('reader');
+    let lastScanned = '';
+    let lastScanTime = 0;
+
+    qr.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      onScanSuccess
+    ).catch(err => {
+      document.getElementById('scannerBox').innerHTML = 
+        '<div class="text-red-600 text-sm p-4">Impossibile accedere alla fotocamera. Assicurati di aver concesso il permesso e di usare HTTPS. Usa il campo manuale qui sotto.<br><br><em>' + err + '</em></div>';
+    });
+
+    async function onScanSuccess(decodedText) {
+      const now = Date.now();
+      if (decodedText === lastScanned && now - lastScanTime < 3000) return;
+      lastScanned = decodedText;
+      lastScanTime = now;
+      beep();
+      
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ code: decodedText })
+        });
+        const result = await response.json();
+        showResult(result);
+      } catch (err) {
+        showError('Errore di connessione: ' + err.message);
+      }
+    }
+
+    async function manualCheckIn() {
+      const code = document.getElementById('manualCode').value.trim().toUpperCase();
+      if (!code) return;
+      beep();
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ code: code })
+        });
+        const result = await response.json();
+        showResult(result);
+      } catch (err) {
+        showError('Errore: ' + err.message);
+      }
+    }
+
+    function showResult(result) {
+      const box = document.getElementById('resultBox');
+      const scannerBox = document.getElementById('scannerBox');
+      scannerBox.classList.add('hidden');
+      box.classList.remove('hidden');
+      
+      let bgClass, icon, title, color;
+      if (result.status === 'ok') {
+        bgClass = 'bg-green-500 text-white'; color = 'green'; icon = '✅'; title = 'AMMESSO';
+      } else if (result.status === 'not_paid') {
+        bgClass = 'bg-red-500 text-white'; color = 'red'; icon = '💰'; title = 'NON PAGATO';
+      } else if (result.status === 'already_in') {
+        bgClass = 'bg-yellow-500 text-white'; color = 'yellow'; icon = '⚠️'; title = 'GIÀ ENTRATO';
+      } else {
+        bgClass = 'bg-gray-700 text-white'; color = 'gray'; icon = '❌'; title = 'NON TROVATO';
+      }
+      
+      let html = `<div class="rounded-2xl p-6 ${bgClass} flash-${color === 'green' ? 'green' : 'red'}">
+        <div class="text-6xl mb-2">${icon}</div>
+        <h2 class="text-3xl font-extrabold mb-4">${title}</h2>`;
+      
+      if (result.name) {
+        html += `<p class="text-2xl font-bold mb-1">${result.name}</p>`;
+        if (result.passengerName) html += `<p class="text-lg opacity-90 mb-2">+ ${result.passengerName}</p>`;
+        if (result.total) html += `<p class="text-sm opacity-90">Totale: ${Number(result.total).toFixed(2).replace('.', ',')} €</p>`;
+      }
+      if (result.timestamp) html += `<p class="text-sm mt-2 opacity-90">Ora: ${result.timestamp}</p>`;
+      html += `<p class="mt-4 text-sm bg-white/20 rounded p-2">${result.message}</p></div>`;
+      html += `<button onclick="resetScanner()" class="mt-4 w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-4 rounded-xl text-lg transition">📷 Scansiona Prossimo</button>`;
+      box.innerHTML = html;
+      
+      if (navigator.vibrate) navigator.vibrate(result.status === 'ok' ? [100, 50, 100] : [300]);
+      
+      setTimeout(() => { if (!document.getElementById('resultBox').classList.contains('hidden')) resetScanner(); }, 4000);
+    }
+
+    function showError(msg) {
+      const box = document.getElementById('resultBox');
+      document.getElementById('scannerBox').classList.add('hidden');
+      box.classList.remove('hidden');
+      box.innerHTML = `<div class="bg-red-600 text-white rounded-2xl p-6"><div class="text-6xl mb-2">❌</div><h2 class="text-2xl font-bold mb-2">ERRORE</h2><p class="text-sm">${msg}</p></div><button onclick="resetScanner()" class="mt-4 w-full bg-gray-800 text-white font-bold py-4 rounded-xl">Riprova</button>`;
+    }
+
+    function resetScanner() {
+      document.getElementById('resultBox').classList.add('hidden');
+      document.getElementById('scannerBox').classList.remove('hidden');
+      document.getElementById('manualCode').value = '';
+      lastScanned = ''; lastScanTime = 0;
+    }
+
+    function beep() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        osc.connect(ctx.destination);
+        osc.frequency.value = 1200;
+        osc.start(); setTimeout(() => osc.stop(), 100);
+      } catch (e) {}
+    }
+  </script>
+</body>
+</html>
