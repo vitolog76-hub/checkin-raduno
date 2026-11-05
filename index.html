@@ -18,17 +18,37 @@
 </head>
 <body class="bg-gray-100 min-h-screen p-4">
 
+  <!-- HEADER -->
   <header class="bg-white border-b-4 border-red-600 shadow-md p-3 mb-4 text-center rounded-xl">
     <h1 class="text-xl font-bold text-red-600">Check-in Raduno Aquile Alfee</h1>
     <p class="text-xs text-gray-600">Inquadra il QR code del partecipante</p>
   </header>
 
+  <!-- STATISTICHE RAPIDE -->
+  <div id="statsBar" class="bg-white rounded-xl shadow p-3 mb-4 grid grid-cols-3 gap-2 text-center">
+    <div>
+      <p class="text-2xl font-bold text-gray-800" id="statTotal">-</p>
+      <p class="text-xs text-gray-500">Iscritti</p>
+    </div>
+    <div>
+      <p class="text-2xl font-bold text-green-600" id="statPagati">-</p>
+      <p class="text-xs text-gray-500">Pagati</p>
+    </div>
+    <div>
+      <p class="text-2xl font-bold text-blue-600" id="statPresenti">-</p>
+      <p class="text-xs text-gray-500">Entrati</p>
+    </div>
+  </div>
+
+  <!-- SCANNER -->
   <div id="scannerBox" class="bg-white rounded-2xl shadow-lg p-3 mb-4">
     <div id="reader"></div>
   </div>
 
+  <!-- RISULTATO -->
   <div id="resultBox" class="hidden bg-white rounded-2xl shadow-lg p-6 text-center"></div>
 
+  <!-- FALLBACK MANUALE -->
   <div id="manualBox" class="bg-white rounded-xl shadow p-4">
     <p class="text-sm font-medium text-gray-700 mb-2">Problemi con il QR? Inserisci il codice manualmente:</p>
     <div class="flex gap-2">
@@ -38,13 +58,14 @@
   </div>
 
   <script>
-    // ⚠️ INCOLLA QUI L'URL DELLA TUA WEB APP DI APPS SCRIPT (finisce con /exec)
+    // URL della tua Web App Apps Script per il check-in
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzIOsvqDCWi-MRwCqwtpMfGHoVqq7FjLrtqGzjIEe_A9gfXypwRqNPRhqrDFHXo0Iu8kQ/exec';
 
     const qr = new Html5Qrcode('reader');
     let lastScanned = '';
     let lastScanTime = 0;
 
+    // Avvia lo scanner
     qr.start(
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 250, height: 250 } },
@@ -56,9 +77,11 @@
 
     async function onScanSuccess(decodedText) {
       const now = Date.now();
+      // Evita di scansionare lo stesso codice ripetutamente in pochi secondi
       if (decodedText === lastScanned && now - lastScanTime < 3000) return;
       lastScanned = decodedText;
       lastScanTime = now;
+      
       beep();
       
       try {
@@ -98,6 +121,7 @@
       box.classList.remove('hidden');
       
       let bgClass, icon, title, color;
+      
       if (result.status === 'ok') {
         bgClass = 'bg-green-500 text-white'; color = 'green'; icon = '✅'; title = 'AMMESSO';
       } else if (result.status === 'not_paid') {
@@ -117,7 +141,9 @@
         if (result.passengerName) html += `<p class="text-lg opacity-90 mb-2">+ ${result.passengerName}</p>`;
         if (result.total) html += `<p class="text-sm opacity-90">Totale: ${Number(result.total).toFixed(2).replace('.', ',')} €</p>`;
       }
+      
       if (result.timestamp) html += `<p class="text-sm mt-2 opacity-90">Ora: ${result.timestamp}</p>`;
+      
       html += `<p class="mt-4 text-base font-bold bg-white/20 rounded p-3">${result.message}</p>`;
       
       // Istruzioni esplicite per ogni caso
@@ -134,30 +160,44 @@
       html += `</div>`;
       
       html += `<button onclick="resetScanner()" class="mt-4 w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-4 rounded-xl text-lg transition">📷 Scansiona Prossimo</button>`;
+      
       box.innerHTML = html;
       
-      if (navigator.vibrate) navigator.vibrate(result.status === 'ok' ? [100, 50, 100] : [300]);
+      if (navigator.vibrate) {
+        if (result.status === 'ok') navigator.vibrate([100, 50, 100]);
+        else navigator.vibrate([300]);
+      }
       
-      // Auto-reset SOLO per l'ingresso autorizzato (2 secondi)
-      // Per gli altri stati (non pagato, già entrato, non trovato) serve il click manuale
+      // AUTO-RESET: solo se l'ingresso è autorizzato (ok), altrimenti resta a schermo
       if (result.status === 'ok') {
         setTimeout(() => {
-          if (!document.getElementById('resultBox').classList.contains('hidden')) resetScanner();
-        }, 6000);
+          if (!document.getElementById('resultBox').classList.contains('hidden')) {
+            resetScanner();
+          }
+        }, 2000);
       }
+    }
 
     function showError(msg) {
       const box = document.getElementById('resultBox');
       document.getElementById('scannerBox').classList.add('hidden');
       box.classList.remove('hidden');
-      box.innerHTML = `<div class="bg-red-600 text-white rounded-2xl p-6"><div class="text-6xl mb-2">❌</div><h2 class="text-2xl font-bold mb-2">ERRORE</h2><p class="text-sm">${msg}</p></div><button onclick="resetScanner()" class="mt-4 w-full bg-gray-800 text-white font-bold py-4 rounded-xl">Riprova</button>`;
+      box.innerHTML = `
+        <div class="bg-red-600 text-white rounded-2xl p-6">
+          <div class="text-6xl mb-2">❌</div>
+          <h2 class="text-2xl font-bold mb-2">ERRORE</h2>
+          <p class="text-sm">${msg}</p>
+        </div>
+        <button onclick="resetScanner()" class="mt-4 w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-4 rounded-xl text-lg transition">Riprova</button>
+      `;
     }
 
     function resetScanner() {
       document.getElementById('resultBox').classList.add('hidden');
       document.getElementById('scannerBox').classList.remove('hidden');
       document.getElementById('manualCode').value = '';
-      lastScanned = ''; lastScanTime = 0;
+      lastScanned = '';
+      lastScanTime = 0;
     }
 
     function beep() {
@@ -166,7 +206,8 @@
         const osc = ctx.createOscillator();
         osc.connect(ctx.destination);
         osc.frequency.value = 1200;
-        osc.start(); setTimeout(() => osc.stop(), 100);
+        osc.start();
+        setTimeout(() => osc.stop(), 100);
       } catch (e) {}
     }
   </script>
