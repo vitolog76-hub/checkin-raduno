@@ -10,10 +10,6 @@
     body { -webkit-user-select: none; user-select: none; }
     #reader { width: 100%; }
     #reader video { border-radius: 12px; }
-    @keyframes flashGreen { 0% { background-color: #dcfce7; } 100% { background-color: #ffffff; } }
-    @keyframes flashRed { 0% { background-color: #fee2e2; } 100% { background-color: #ffffff; } }
-    .flash-green { animation: flashGreen 1.5s ease-out; }
-    .flash-red { animation: flashRed 1.5s ease-out; }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-4">
@@ -23,22 +19,6 @@
     <h1 class="text-xl font-bold text-red-600">Check-in Raduno Aquile Alfee</h1>
     <p class="text-xs text-gray-600">Inquadra il QR code del partecipante</p>
   </header>
-
-  <!-- STATISTICHE RAPIDE -->
-  <div id="statsBar" class="bg-white rounded-xl shadow p-3 mb-4 grid grid-cols-3 gap-2 text-center">
-    <div>
-      <p class="text-2xl font-bold text-gray-800" id="statTotal">-</p>
-      <p class="text-xs text-gray-500">Iscritti</p>
-    </div>
-    <div>
-      <p class="text-2xl font-bold text-green-600" id="statPagati">-</p>
-      <p class="text-xs text-gray-500">Pagati</p>
-    </div>
-    <div>
-      <p class="text-2xl font-bold text-blue-600" id="statPresenti">-</p>
-      <p class="text-xs text-gray-500">Entrati</p>
-    </div>
-  </div>
 
   <!-- SCANNER -->
   <div id="scannerBox" class="bg-white rounded-2xl shadow-lg p-3 mb-4">
@@ -58,12 +38,13 @@
   </div>
 
   <script>
-    // URL della tua Web App Apps Script per il check-in
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzIOsvqDCWi-MRwCqwtpMfGHoVqq7FjLrtqGzjIEe_A9gfXypwRqNPRhqrDFHXo0Iu8kQ/exec';
 
     const qr = new Html5Qrcode('reader');
     let lastScanned = '';
     let lastScanTime = 0;
+    let currentCode = ''; // codice in attesa di conferma
+    let busy = false;
 
     // Avvia lo scanner
     qr.start(
@@ -76,41 +57,75 @@
     });
 
     async function onScanSuccess(decodedText) {
+      if (busy) return;
       const now = Date.now();
-      // Evita di scansionare lo stesso codice ripetutamente in pochi secondi
       if (decodedText === lastScanned && now - lastScanTime < 3000) return;
       lastScanned = decodedText;
       lastScanTime = now;
+      currentCode = decodedText;
       
       beep();
       
       try {
+        busy = true;
         const response = await fetch(WEB_APP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ code: decodedText })
+          body: JSON.stringify({ action: 'verify', code: decodedText })
         });
         const result = await response.json();
         showResult(result);
       } catch (err) {
         showError('Errore di connessione: ' + err.message);
+      } finally {
+        busy = false;
       }
     }
 
     async function manualCheckIn() {
       const code = document.getElementById('manualCode').value.trim().toUpperCase();
-      if (!code) return;
+      if (!code || busy) return;
+      currentCode = code;
       beep();
       try {
+        busy = true;
         const response = await fetch(WEB_APP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ code: code })
+          body: JSON.stringify({ action: 'verify', code: code })
         });
         const result = await response.json();
         showResult(result);
       } catch (err) {
         showError('Errore: ' + err.message);
+      } finally {
+        busy = false;
+      }
+    }
+
+    // Chiamata quando l'operatore clicca "CONFERMA INGRESSO"
+    async function confermaIngresso() {
+      if (!currentCode || busy) return;
+      busy = true;
+      
+      const btn = document.getElementById('confirmBtn');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Registrazione in corso...';
+      }
+      
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'confirm', code: currentCode })
+        });
+        const result = await response.json();
+        showResult(result);
+      } catch (err) {
+        showError('Errore: ' + err.message);
+      } finally {
+        busy = false;
       }
     }
 
@@ -120,19 +135,37 @@
       scannerBox.classList.add('hidden');
       box.classList.remove('hidden');
       
-      let bgClass, icon, title, color;
+      let bgClass, icon, title, extraInstruction = '';
       
-      if (result.status === 'ok') {
-        bgClass = 'bg-green-500 text-white'; color = 'green'; icon = '✅'; title = 'AMMESSO';
+      if (result.status === 'ready') {
+        // Stato "pronto per conferma": giallo, chiede conferma
+        bgClass = 'bg-amber-500 text-white';
+        icon = '🔎';
+        title = 'VERIFICATO';
+        extraInstruction = 'Controlla i dati e premi CONFERMA INGRESSO.';
+      } else if (result.status === 'ok') {
+        bgClass = 'bg-green-500 text-white';
+        icon = '✅';
+        title = 'INGRESSO REGISTRATO';
+        extraInstruction = 'Puoi far entrare la persona.';
       } else if (result.status === 'not_paid') {
-        bgClass = 'bg-red-500 text-white'; color = 'red'; icon = '💰'; title = 'NON PAGATO';
+        bgClass = 'bg-red-500 text-white';
+        icon = '💰';
+        title = 'NON PAGATO';
+        extraInstruction = '➡️ Acompagna la persona alla cassa.';
       } else if (result.status === 'already_in') {
-        bgClass = 'bg-yellow-500 text-white'; color = 'yellow'; icon = '⚠️'; title = 'GIÀ ENTRATO';
+        bgClass = 'bg-yellow-500 text-white';
+        icon = '⚠️';
+        title = 'GIÀ ENTRATO';
+        extraInstruction = '➡️ Verifica con il responsabile.';
       } else {
-        bgClass = 'bg-gray-700 text-white'; color = 'gray'; icon = '❌'; title = 'NON TROVATO';
+        bgClass = 'bg-gray-700 text-white';
+        icon = '❌';
+        title = 'NON TROVATO';
+        extraInstruction = '➡️ Codice non valido o iscrizione non presente.';
       }
       
-      let html = `<div class="rounded-2xl p-6 ${bgClass} flash-${color === 'green' ? 'green' : 'red'}">
+      let html = `<div class="rounded-2xl p-6 ${bgClass}">
         <div class="text-6xl mb-2">${icon}</div>
         <h2 class="text-3xl font-extrabold mb-4">${title}</h2>`;
       
@@ -145,30 +178,40 @@
       if (result.timestamp) html += `<p class="text-sm mt-2 opacity-90">Ora: ${result.timestamp}</p>`;
       
       html += `<p class="mt-4 text-base font-bold bg-white/20 rounded p-3">${result.message}</p>`;
-      
-      // Istruzioni esplicite per ogni caso
-      if (result.status === 'not_paid') {
-        html += `<p class="mt-3 text-sm bg-white/30 rounded p-2">➡️ Acompagna la persona alla cassa per il pagamento.</p>`;
-      } else if (result.status === 'already_in') {
-        html += `<p class="mt-3 text-sm bg-white/30 rounded p-2">➡️ Verifica la situazione con il responsabile.</p>`;
-      } else if (result.status === 'not_found') {
-        html += `<p class="mt-3 text-sm bg-white/30 rounded p-2">➡️ Codice non valido. Chiedi un documento o verifica l'iscrizione sul foglio.</p>`;
-      } else if (result.status === 'ok') {
-        html += `<p class="mt-3 text-sm bg-white/30 rounded p-2">➡️ Puoi far entrare. Buon raduno!</p>`;
+      if (extraInstruction) {
+        html += `<p class="mt-3 text-sm bg-white/30 rounded p-2">${extraInstruction}</p>`;
       }
-      
       html += `</div>`;
       
-      html += `<button onclick="resetScanner()" class="mt-4 w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-4 rounded-xl text-lg transition">📷 Scansiona Prossimo</button>`;
+      // Pulsanti
+      if (result.status === 'ready') {
+        // Due pulsanti: conferma o annulla
+        html += `
+          <button id="confirmBtn" onclick="confermaIngresso()" class="mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-5 rounded-xl text-xl transition shadow-lg">
+            ✅ CONFERMA INGRESSO
+          </button>
+          <button onclick="resetScanner()" class="mt-2 w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 rounded-xl text-base transition">
+            ↩️ Annulla
+          </button>
+        `;
+      } else if (result.status === 'ok') {
+        // Solo pulsante per tornare allo scanner
+        html += `<button onclick="resetScanner()" class="mt-4 w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-4 rounded-xl text-lg transition">📷 Scansiona Prossimo</button>`;
+      } else {
+        // Errore o altro: pulsante per tornare allo scanner
+        html += `<button onclick="resetScanner()" class="mt-4 w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-4 rounded-xl text-lg transition">📷 Scansiona Prossimo</button>`;
+      }
       
       box.innerHTML = html;
       
+      // Vibrazione
       if (navigator.vibrate) {
         if (result.status === 'ok') navigator.vibrate([100, 50, 100]);
+        else if (result.status === 'ready') navigator.vibrate([50]);
         else navigator.vibrate([300]);
       }
       
-      // AUTO-RESET: solo se l'ingresso è autorizzato (ok), altrimenti resta a schermo
+      // Auto-reset SOLO per gli ingressi confermati (2 secondi)
       if (result.status === 'ok') {
         setTimeout(() => {
           if (!document.getElementById('resultBox').classList.contains('hidden')) {
@@ -198,6 +241,8 @@
       document.getElementById('manualCode').value = '';
       lastScanned = '';
       lastScanTime = 0;
+      currentCode = '';
+      busy = false;
     }
 
     function beep() {
