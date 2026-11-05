@@ -124,8 +124,13 @@
       
       if (navigator.vibrate) navigator.vibrate(result.status === 'ok' ? [100, 50, 100] : [300]);
       
-      setTimeout(() => { if (!document.getElementById('resultBox').classList.contains('hidden')) resetScanner(); }, 4000);
-    }
+      // Auto-reset SOLO per l'ingresso autorizzato (2 secondi)
+      // Per gli altri stati (non pagato, già entrato, non trovato) serve il click manuale
+      if (result.status === 'ok') {
+        setTimeout(() => {
+          if (!document.getElementById('resultBox').classList.contains('hidden')) resetScanner();
+        }, 6000);
+      }
 
     function showError(msg) {
       const box = document.getElementById('resultBox');
