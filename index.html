@@ -118,7 +118,21 @@
         if (result.total) html += `<p class="text-sm opacity-90">Totale: ${Number(result.total).toFixed(2).replace('.', ',')} €</p>`;
       }
       if (result.timestamp) html += `<p class="text-sm mt-2 opacity-90">Ora: ${result.timestamp}</p>`;
-      html += `<p class="mt-4 text-sm bg-white/20 rounded p-2">${result.message}</p></div>`;
+      html += `<p class="mt-4 text-base font-bold bg-white/20 rounded p-3">${result.message}</p>`;
+      
+      // Istruzioni esplicite per ogni caso
+      if (result.status === 'not_paid') {
+        html += `<p class="mt-3 text-sm bg-white/30 rounded p-2">➡️ Acompagna la persona alla cassa per il pagamento.</p>`;
+      } else if (result.status === 'already_in') {
+        html += `<p class="mt-3 text-sm bg-white/30 rounded p-2">➡️ Verifica la situazione con il responsabile.</p>`;
+      } else if (result.status === 'not_found') {
+        html += `<p class="mt-3 text-sm bg-white/30 rounded p-2">➡️ Codice non valido. Chiedi un documento o verifica l'iscrizione sul foglio.</p>`;
+      } else if (result.status === 'ok') {
+        html += `<p class="mt-3 text-sm bg-white/30 rounded p-2">➡️ Puoi far entrare. Buon raduno!</p>`;
+      }
+      
+      html += `</div>`;
+      
       html += `<button onclick="resetScanner()" class="mt-4 w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-4 rounded-xl text-lg transition">📷 Scansiona Prossimo</button>`;
       box.innerHTML = html;
       
