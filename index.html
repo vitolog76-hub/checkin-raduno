@@ -513,6 +513,12 @@
         if (result.pilotDetails) {
           html += `<div class="person-block">`;
           html += `<div class="person-title">Pilota</div>`;
+          
+          // MOSTRA IL MODELLO DELLA MOTO
+          if (result.pilotDetails.moto) {
+            html += `<p style="font-size:1rem; font-weight:700; color:var(--red); margin:0 0 0.75rem 0;">Moto: ${result.pilotDetails.moto}</p>`;
+          }
+          
           if (result.pilotDetails.hasMeals) {
             html += `<ul class="meal-list">`;
             result.pilotDetails.meals.forEach(m => { html += `<li>${m.label}</li>`; });
@@ -529,7 +535,7 @@
           html += `</div>`;
         }
         
-               if (result.passengerDetails && result.passengerName) {
+        if (result.passengerDetails && result.passengerName) {
           html += `<div class="person-block">`;
           html += `<div class="person-title">Passeggero</div>`;
           html += `<p style="font-size:1.125rem; font-weight:700; color:var(--ink); margin:0 0 0.75rem 0;">${result.passengerName}</p>`;
