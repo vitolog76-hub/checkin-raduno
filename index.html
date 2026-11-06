@@ -529,9 +529,10 @@
           html += `</div>`;
         }
         
-        if (result.passengerDetails && result.passengerName) {
+               if (result.passengerDetails && result.passengerName) {
           html += `<div class="person-block">`;
           html += `<div class="person-title">Passeggero</div>`;
+          html += `<p style="font-size:1.125rem; font-weight:700; color:var(--ink); margin:0 0 0.75rem 0;">${result.passengerName}</p>`;
           if (result.passengerDetails.hasMeals) {
             html += `<ul class="meal-list">`;
             result.passengerDetails.meals.forEach(m => { html += `<li>${m.label}</li>`; });
