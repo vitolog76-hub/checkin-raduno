@@ -171,6 +171,7 @@
     /* STATUS COLORS */
     .status-ok .result-header { border-left: 6px solid var(--success); background: var(--success-bg); }
     .status-ok .result-title { color: var(--success); }
+    .status-ok .result-icon { color: var(--success); }
     
     .status-warning .result-header { border-left: 6px solid var(--warning); background: var(--warning-bg); }
     .status-warning .result-title { color: var(--warning); }
@@ -323,7 +324,7 @@
   </main>
 
   <script>
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwrx5s88EV-zuq1FpCWCaqGiUVoRFioebcNEqM6oSLtCuqNoY6Sv_iEBsxhWhcJZJ4B/exec';
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzIOsvqDCWi-MRwCqwtpMfGHoVqq7FjLrtqGzjIEe_A9gfXypwRqNPRhqrDFHXo0Iu8kQ/exec';
 
     const qr = new Html5Qrcode('reader');
     let lastScanned = '';
@@ -461,9 +462,9 @@
       let statusClass, iconType, title, instruction = '';
       
       if (result.status === 'ready') {
-        statusClass = 'status-warning';
-        iconType = 'warning';
-        title = 'VERIFICATO';
+        statusClass = 'status-ok';
+        iconType = 'ok';
+        title = 'QUOTA VERSATA';
         instruction = 'Controlla i dettagli e premi CONFERMA INGRESSO.';
       } else if (result.status === 'ok') {
         statusClass = 'status-ok';
