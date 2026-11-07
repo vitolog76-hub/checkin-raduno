@@ -177,7 +177,7 @@
     
     .status-error .result-header { border-left: 6px solid var(--error); background: var(--error-bg); }
     .status-error .result-title { color: var(--error); }
-    
+
     .status-neutral .result-header { border-left: 6px solid var(--neutral); background: var(--neutral-bg); }
     .status-neutral .result-title { color: var(--neutral); }
 
@@ -202,7 +202,7 @@
       padding-bottom: 0.5rem;
       display: inline-block;
     }
-    .detail-row { display: flex; justify-content: space-between; font-size: 0.9375rem; padding: 0.25rem 0; }
+    .detail-row { display: flex; justify-content: space-between; font-size: 0.9375rem; padding: 0.25rem 0; gap: 1rem; }
     .detail-label { color: var(--ink-3); font-weight: 500; }
     .detail-value { color: var(--ink); font-weight: 600; text-align: right; }
     
@@ -295,7 +295,6 @@
     .search-item-status.paid { color: var(--success); }
     .search-item-status.not-paid { color: var(--error); }
     .search-item-price { font-family: 'Barlow Condensed', sans-serif; font-size: 1.25rem; font-weight: 700; color: var(--ink); }
-
   </style>
 </head>
 <body>
@@ -332,7 +331,6 @@
     let currentCode = '';
     let busy = false;
 
-    // Avvia lo scanner
     qr.start(
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 250, height: 250 } },
@@ -443,7 +441,6 @@
       }
     }
 
-    // Utility per generare icone SVG pulite
     function getIcon(type) {
       const stroke = 'currentColor';
       if (type === 'ok') return `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
@@ -492,7 +489,6 @@
       
       let html = `<div class="${statusClass}">`;
       
-      // Header
       html += `<div class="result-header">
         <div class="result-icon">${getIcon(iconType)}</div>
         <h2 class="result-title">${title}</h2>`;
@@ -504,7 +500,6 @@
       }
       html += `</div>`;
       
-      // Dettagli Pasti
       let hasDetails = false;
       if (result.pilotDetails || result.passengerDetails) {
         hasDetails = true;
@@ -514,10 +509,17 @@
           html += `<div class="person-block">`;
           html += `<div class="person-title">Pilota</div>`;
           
-          // MOSTRA IL MODELLO DELLA MOTO
           if (result.pilotDetails.moto) {
-            html += `<p style="font-size:1rem; font-weight:700; color:var(--red); margin:0 0 0.75rem 0;">Moto: ${result.pilotDetails.moto}</p>`;
+            html += `<div class="detail-row"><span class="detail-label">Moto</span><span class="detail-value">${result.pilotDetails.moto}</span></div>`;
           }
+          if (result.pilotDetails.citta) {
+            html += `<div class="detail-row"><span class="detail-label">Città</span><span class="detail-value">${result.pilotDetails.citta}</span></div>`;
+          }
+          if (result.pilotDetails.club) {
+            html += `<div class="detail-row"><span class="detail-label">Club</span><span class="detail-value">${result.pilotDetails.club}</span></div>`;
+          }
+          
+          html += `<div style="height:0.5rem;"></div>`;
           
           if (result.pilotDetails.hasMeals) {
             html += `<ul class="meal-list">`;
@@ -558,14 +560,11 @@
         html += `</div>`;
       }
       
-      // Actions
       html += `<div class="result-actions">`;
       
       if (result.status === 'ready') {
         html += `<button id="confirmBtn" onclick="confermaIngresso()" class="btn-action btn-confirm">Conferma Ingresso</button>`;
         html += `<button onclick="resetScanner()" class="btn-action btn-cancel">Annulla</button>`;
-      } else if (result.status === 'ok') {
-        html += `<button onclick="resetScanner()" class="btn-action btn-next">Scansiona Prossimo</button>`;
       } else {
         html += `<button onclick="resetScanner()" class="btn-action btn-next">Scansiona Prossimo</button>`;
       }
@@ -581,7 +580,6 @@
         else navigator.vibrate([300]);
       }
       
-      // Auto-reset dopo 3 secondi per l'ingresso confermato
       if (result.status === 'ok') {
         setTimeout(() => {
           if (!document.getElementById('resultBox').classList.contains('hidden')) {
