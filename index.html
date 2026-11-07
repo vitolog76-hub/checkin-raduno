@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Check-in Raduno Aquile Alfee</title>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -20,6 +23,8 @@
       
       --success: #16a34a;
       --success-bg: #f0fdf4;
+      --info: #2563eb;
+      --info-bg: #eff6ff;
       --warning: #d97706;
       --warning-bg: #fffbeb;
       --error: #dc2626;
@@ -173,6 +178,10 @@
     .status-ok .result-title { color: var(--success); }
     .status-ok .result-icon { color: var(--success); }
     
+    .status-info .result-header { border-left: 6px solid var(--info); background: var(--info-bg); }
+    .status-info .result-title { color: var(--info); }
+    .status-info .result-icon { color: var(--info); }
+    
     .status-warning .result-header { border-left: 6px solid var(--warning); background: var(--warning-bg); }
     .status-warning .result-title { color: var(--warning); }
     
@@ -234,6 +243,21 @@
       color: #92400e;
     }
     .dietary-box strong { display: block; text-transform: uppercase; font-size: 0.6875rem; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+
+    /* INFO TIMESTAMP BOX */
+    .info-timestamp {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      background: #ffffff;
+      border: 1px solid #bfdbfe;
+      border-radius: 999px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--info);
+      letter-spacing: 0.03em;
+    }
 
     /* ACTIONS */
     .result-actions {
@@ -324,7 +348,8 @@
   </main>
 
   <script>
-            const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwrx5s88EV-zuq1FpCWCaqGiUVoRFioebcNEqM6oSLtCuqNoY6Sv_iEBsxhWhcJZJ4B/exec';
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwrx5s88EV-zuq1FpCWCaqGiUVoRFioebcNEqM6oSLtCuqNoY6Sv_iEBsxhWhcJZJ4B/exec';
+
     const qr = new Html5Qrcode('reader');
     let lastScanned = '';
     let lastScanTime = 0;
@@ -444,6 +469,7 @@
     function getIcon(type) {
       const stroke = 'currentColor';
       if (type === 'ok') return `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+      if (type === 'clock') return `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
       if (type === 'warning') return `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
       if (type === 'error') return `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
       return `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
@@ -476,10 +502,10 @@
         title = 'NON PAGATO';
         instruction = 'Acompagna la persona alla cassa.';
       } else if (result.status === 'already_in') {
-        statusClass = 'status-warning';
-        iconType = 'warning';
-        title = 'GIÀ ENTRATO';
-        instruction = 'Verifica con il responsabile.';
+        statusClass = 'status-info';
+        iconType = 'clock';
+        title = 'INGRESSO REGISTRATO';
+        instruction = 'Questa persona è già passata.';
       } else {
         statusClass = 'status-neutral';
         iconType = 'error';
@@ -494,6 +520,9 @@
         <h2 class="result-title">${title}</h2>`;
       if (result.name) {
         html += `<p class="result-name">${result.name}</p>`;
+      }
+      if (result.status === 'already_in' && result.timestamp) {
+        html += `<div class="info-timestamp">Registrato alle ${result.timestamp}</div>`;
       }
       if (result.total) {
         html += `<p class="result-total">Totale: <strong>${Number(result.total).toFixed(2).replace('.', ',')} €</strong></p>`;
@@ -622,7 +651,7 @@
         
         result.results.forEach(r => {
           const statoClass = r.paid ? 'paid' : 'not-paid';
-          const statoText = r.paid ? (r.alreadyIn ? 'Già entrato' : 'Pagato') : 'Non pagato';
+          const statoText = r.paid ? (r.alreadyIn ? 'Presente' : 'Pagato') : 'Non pagato';
           
           html += `
             <button onclick="verificaDaLista('${r.code}')" class="search-item">
