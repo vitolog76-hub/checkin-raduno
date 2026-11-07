@@ -44,7 +44,6 @@
     }
     h1, h2, h3, .condensed { font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.01em; }
 
-    /* HEADER */
     .app-header {
       background: #ffffff;
       border-top: 6px solid var(--red);
@@ -68,14 +67,8 @@
       font-weight: 500;
     }
 
-    /* CONTAINER */
-    .app-container {
-      max-width: 32rem;
-      margin: 0 auto;
-      padding: 1.25rem;
-    }
+    .app-container { max-width: 32rem; margin: 0 auto; padding: 1.25rem; }
 
-    /* SCANNER */
     .scanner-box {
       background: #ffffff;
       border: 1px solid var(--line);
@@ -86,7 +79,6 @@
     #reader { width: 100%; }
     #reader video { border-radius: 2px; }
 
-    /* MANUAL SEARCH */
     .manual-box {
       background: #ffffff;
       border: 1px solid var(--line);
@@ -134,7 +126,6 @@
     }
     .btn-search:hover { background: var(--red); }
 
-    /* RESULT CARD */
     .result-box {
       background: #ffffff;
       border: 1px solid var(--line);
@@ -173,7 +164,6 @@
       margin: 0.25rem 0 0 0;
     }
     
-    /* STATUS COLORS */
     .status-ok .result-header { border-left: 6px solid var(--success); background: var(--success-bg); }
     .status-ok .result-title { color: var(--success); }
     .status-ok .result-icon { color: var(--success); }
@@ -191,10 +181,7 @@
     .status-neutral .result-header { border-left: 6px solid var(--neutral); background: var(--neutral-bg); }
     .status-neutral .result-title { color: var(--neutral); }
 
-    /* DETAILS */
-    .result-details {
-      padding: 1.5rem;
-    }
+    .result-details { padding: 1.5rem; }
     .person-block {
       margin-bottom: 1.5rem;
       border-bottom: 1px solid var(--line);
@@ -244,7 +231,6 @@
     }
     .dietary-box strong { display: block; text-transform: uppercase; font-size: 0.6875rem; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
 
-    /* INFO TIMESTAMP BOX */
     .info-timestamp {
       display: inline-block;
       margin-top: 1rem;
@@ -258,8 +244,24 @@
       color: var(--info);
       letter-spacing: 0.03em;
     }
+    .info-timestamp.success { border-color: #bbf7d0; color: var(--success); }
 
-    /* ACTIONS */
+    .order-info-block {
+      background: #fafafa;
+      border: 1px solid var(--line);
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .order-info-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-3);
+      margin: 0 0 0.5rem 0;
+    }
+
     .result-actions {
       padding: 1.5rem;
       background: #faf9f7;
@@ -291,7 +293,6 @@
     .btn-next { background: var(--ink); color: #ffffff; }
     .btn-next:hover { background: var(--neutral); }
 
-    /* SEARCH RESULTS LIST */
     .search-results-title {
       font-family: 'Barlow Condensed', sans-serif;
       font-size: 1.5rem;
@@ -475,6 +476,23 @@
       return `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
     }
 
+    function renderOrderInfo(result) {
+      if (!result.dataIscrizione && !result.modalitaPagamento && !result.dataPagamento) return '';
+      let html = '<div class="order-info-block">';
+      html += '<p class="order-info-title">Dati iscrizione</p>';
+      if (result.dataIscrizione) {
+        html += `<div class="detail-row"><span class="detail-label">Iscritto il</span><span class="detail-value">${result.dataIscrizione}</span></div>`;
+      }
+      if (result.dataPagamento) {
+        html += `<div class="detail-row"><span class="detail-label">Pagamento registrato il</span><span class="detail-value">${result.dataPagamento}</span></div>`;
+      }
+      if (result.modalitaPagamento) {
+        html += `<div class="detail-row"><span class="detail-label">Metodo pagamento</span><span class="detail-value">${result.modalitaPagamento}</span></div>`;
+      }
+      html += '</div>';
+      return html;
+    }
+
     function showResult(result) {
       const box = document.getElementById('resultBox');
       const scannerBox = document.getElementById('scannerBox');
@@ -484,33 +502,28 @@
       manualBox.classList.add('hidden');
       box.classList.remove('hidden');
       
-      let statusClass, iconType, title, instruction = '';
+      let statusClass, iconType, title;
       
       if (result.status === 'ready') {
         statusClass = 'status-ok';
         iconType = 'ok';
         title = 'QUOTA VERSATA';
-        instruction = 'Controlla i dettagli e premi CONFERMA INGRESSO.';
       } else if (result.status === 'ok') {
         statusClass = 'status-ok';
         iconType = 'ok';
         title = 'INGRESSO REGISTRATO';
-        instruction = 'Puoi far entrare la persona.';
       } else if (result.status === 'not_paid') {
         statusClass = 'status-error';
         iconType = 'error';
         title = 'NON PAGATO';
-        instruction = 'Acompagna la persona alla cassa.';
       } else if (result.status === 'already_in') {
         statusClass = 'status-info';
         iconType = 'clock';
         title = 'INGRESSO REGISTRATO';
-        instruction = 'Questa persona è già passata.';
       } else {
         statusClass = 'status-neutral';
         iconType = 'error';
         title = 'NON TROVATO';
-        instruction = 'Codice non valido o iscrizione non presente.';
       }
       
       let html = `<div class="${statusClass}">`;
@@ -522,17 +535,20 @@
         html += `<p class="result-name">${result.name}</p>`;
       }
       if (result.status === 'already_in' && result.timestamp) {
-        html += `<div class="info-timestamp">Registrato alle ${result.timestamp}</div>`;
+        html += `<div class="info-timestamp">Ingresso del ${result.timestamp}</div>`;
+      }
+      if (result.status === 'ok' && result.timestamp) {
+        html += `<div class="info-timestamp success">Ingresso del ${result.timestamp}</div>`;
       }
       if (result.total) {
         html += `<p class="result-total">Totale: <strong>${Number(result.total).toFixed(2).replace('.', ',')} €</strong></p>`;
       }
       html += `</div>`;
       
-      let hasDetails = false;
-      if (result.pilotDetails || result.passengerDetails) {
-        hasDetails = true;
+      if (result.status === 'ready' || result.status === 'ok' || result.status === 'already_in' || result.status === 'not_paid') {
         html += `<div class="result-details">`;
+        
+        html += renderOrderInfo(result);
         
         if (result.pilotDetails) {
           html += `<div class="person-block">`;
