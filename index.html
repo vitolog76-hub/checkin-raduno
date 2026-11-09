@@ -219,6 +219,47 @@
       margin-right: 0.5rem;
       border-radius: 50%;
     }
+
+    /* ===== NUOVO: BOX PANINO/BIBITA ===== */
+    .meal-detail-box {
+      margin-top: 0.75rem;
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-left: 4px solid var(--warning);
+      padding: 0.875rem;
+    }
+    .meal-detail-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #92400e;
+      margin: 0 0 0.5rem 0;
+      letter-spacing: 0.03em;
+    }
+    .meal-detail-line {
+      font-size: 0.9375rem;
+      color: var(--ink);
+      margin: 0.125rem 0;
+    }
+    .meal-detail-line strong { font-weight: 700; }
+    .btn-mod-meal {
+      margin-top: 0.75rem;
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--ink);
+      color: #ffffff;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-mod-meal:hover { background: var(--red); }
+    .btn-mod-meal:disabled { opacity: 0.6; cursor: not-allowed; }
     
     .dietary-box {
       margin-top: 0.75rem;
@@ -321,9 +362,88 @@
     .search-item-status.paid { color: var(--success); }
     .search-item-status.not-paid { color: var(--error); }
     .search-item-price { font-family: 'Barlow Condensed', sans-serif; font-size: 1.25rem; font-weight: 700; color: var(--ink); }
+
+    /* ===== NUOVO: MODALE MODIFICA PASTO ===== */
+    .hidden { display: none !important; }
+    .meal-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(10, 10, 10, 0.75);
+      z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+    .meal-modal-content {
+      background: #ffffff;
+      width: 100%;
+      max-width: 28rem;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+      display: flex; flex-direction: column;
+    }
+    .meal-modal-header {
+      padding: 1.25rem 1.5rem;
+      background: var(--ink);
+      color: #ffffff;
+      border-bottom: 4px solid var(--red);
+    }
+    .meal-modal-header h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin: 0;
+      letter-spacing: 0.03em;
+    }
+    .meal-modal-header p {
+      font-size: 0.875rem;
+      color: #a3a3a3;
+      margin: 0.25rem 0 0 0;
+    }
+    .meal-modal-body { padding: 1.5rem; }
+    .meal-modal-label {
+      display: block;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-2);
+      margin-bottom: 0.5rem;
+    }
+    .meal-modal-select {
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      padding: 0.875rem 1rem;
+      font-size: 1rem;
+      font-family: 'Barlow', sans-serif;
+      margin-bottom: 1.25rem;
+      border-radius: 0;
+    }
+    .meal-modal-select:focus {
+      outline: none;
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.08);
+    }
+    .meal-modal-footer {
+      padding: 1rem 1.5rem;
+      background: #faf9f7;
+      border-top: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .meal-modal-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      font-size: 0.875rem;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+    }
   </style>
 </head>
-<body>
+
+  
+  
+ <body>
 
   <header class="app-header">
     <h1>Check-in Raduno</h1>
@@ -348,14 +468,92 @@
 
   </main>
 
+  <!-- MODALE MODIFICA PASTO -->
+  <div id="mealModal" class="hidden meal-modal-overlay">
+    <div class="meal-modal-content">
+      <div class="meal-modal-header">
+        <h2>Modifica Pranzo</h2>
+        <p id="mealModalPerson">—</p>
+      </div>
+      <div class="meal-modal-body">
+        <div id="mealModalError" class="hidden meal-modal-error"></div>
+        <label for="mealModalPanino" class="meal-modal-label">Panino</label>
+        <select id="mealModalPanino" class="meal-modal-select">
+          <option value="">— Seleziona —</option>
+        </select>
+        <label for="mealModalBibita" class="meal-modal-label">Bibita</label>
+        <select id="mealModalBibita" class="meal-modal-select">
+          <option value="">— Seleziona —</option>
+        </select>
+      </div>
+      <div class="meal-modal-footer">
+        <button type="button" onclick="confirmMealUpdate()" id="mealModalConfirm" class="btn-action btn-confirm">Conferma Modifica</button>
+        <button type="button" onclick="closeMealModal()" class="btn-action btn-cancel">Annulla</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwrx5s88EV-zuq1FpCWCaqGiUVoRFioebcNEqM6oSLtCuqNoY6Sv_iEBsxhWhcJZJ4B/exec';
+
+    // Liste panini/bibite (caricate da file esterni, fallback hardcoded)
+    var PANINI = [];
+    var BIBITE = [];
+
+    // Stato per la modale
+    var mealModalCode = '';
+    var mealModalName = '';
+    var mealModalRole = '';
+    var mealModalOldPanino = '';
+    var mealModalOldBibita = '';
+    var mealModalIsOpen = false;
 
     const qr = new Html5Qrcode('reader');
     let lastScanned = '';
     let lastScanTime = 0;
     let currentCode = '';
     let busy = false;
+
+    // Carica liste panini/bibite (con fallback)
+    async function loadMealLists() {
+      try {
+        const rp = await fetch('panini.txt?v=' + Date.now(), { cache: 'no-cache' });
+        if (rp.ok) {
+          const txt = await rp.text();
+          PANINI = txt.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+        }
+      } catch (e) { console.warn('panini.txt non caricato:', e); }
+      if (PANINI.length === 0) {
+        PANINI = ['PROSCIUTTO CRUDO E MOZZARELLA', 'PROSCIUTTO COTTO E FORMAGGIO', 'TONNO E POMODORO', 'VEGETARIANO (FORMAGGIO E VERDURE)', 'SALSICCIA E PEPERONI'];
+      }
+
+      try {
+        const rb = await fetch('bibite.txt?v=' + Date.now(), { cache: 'no-cache' });
+        if (rb.ok) {
+          const txt = await rb.text();
+          BIBITE = txt.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+        }
+      } catch (e) { console.warn('bibite.txt non caricato:', e); }
+      if (BIBITE.length === 0) {
+        BIBITE = ['ACQUA NATURALE 0,5L', 'ACQUA FRIZZANTE 0,5L', 'COCA-COLA', 'FANTA', 'TÈ FREDDO AL LIMONE', 'BIRRA'];
+      }
+
+      // Popola select nella modale
+      const selPanino = document.getElementById('mealModalPanino');
+      const selBibita = document.getElementById('mealModalBibita');
+      while (selPanino.options.length > 1) selPanino.remove(1);
+      while (selBibita.options.length > 1) selBibita.remove(1);
+      PANINI.forEach(p => {
+        const o = document.createElement('option');
+        o.value = p; o.textContent = p;
+        selPanino.appendChild(o);
+      });
+      BIBITE.forEach(b => {
+        const o = document.createElement('option');
+        o.value = b; o.textContent = b;
+        selBibita.appendChild(o);
+      });
+    }
 
     qr.start(
       { facingMode: 'environment' },
@@ -493,6 +691,32 @@
       return html;
     }
 
+    // NUOVO: renderizza il box panino/bibita con pulsante modifica
+    function renderMealDetail(details, roleLabel, codeForModal, nameForModal) {
+      if (!details || !details.pranzoSab) return '';
+      const panino = details.panino || '—';
+      const bibita = details.bibita || '—';
+      const code = codeForModal || '';
+      const name = nameForModal || '';
+      const role = roleLabel || 'Pilota';
+
+      let html = '<div class="meal-detail-box">';
+      html += '<p class="meal-detail-title">🍔 Pranzo Sabato</p>';
+      html += `<p class="meal-detail-line">Panino: <strong>${panino}</strong></p>`;
+      html += `<p class="meal-detail-line">Bibita: <strong>${bibita}</strong></p>`;
+      html += `<p class="meal-detail-line">Frutta: <strong>inclusa</strong></p>`;
+      if (code) {
+        const safeCode = code.replace(/'/g, "\\'");
+        const safeName = name.replace(/'/g, "\\'");
+        const safeRole = role.replace(/'/g, "\\'");
+        const safePanino = (details.panino || '').replace(/'/g, "\\'");
+        const safeBibita = (details.bibita || '').replace(/'/g, "\\'");
+        html += `<button type="button" class="btn-mod-meal" onclick="openMealModal('${safeCode}','${safeName}','${safeRole}','${safePanino}','${safeBibita}')">✏️ Modifica panino / bibita</button>`;
+      }
+      html += '</div>';
+      return html;
+    }
+
     function showResult(result) {
       const box = document.getElementById('resultBox');
       const scannerBox = document.getElementById('scannerBox');
@@ -549,6 +773,9 @@
         html += `<div class="result-details">`;
         
         html += renderOrderInfo(result);
+
+        // Codice per la modale (base code senza -P)
+        const baseCode = (result.baseCode || currentCode || '').replace(/-P$/, '');
         
         if (result.pilotDetails) {
           html += `<div class="person-block">`;
@@ -573,6 +800,10 @@
           } else {
             html += `<p style="font-size:0.875rem; color:var(--ink-3); font-style:italic; margin:0;">Nessun pasto prenotato</p>`;
           }
+          
+          // Box panino/bibita per il pilota
+          html += renderMealDetail(result.pilotDetails, 'Pilota', baseCode, result.name || '');
+          
           if (result.pilotDetails.shirt) {
             html += `<div class="detail-row" style="margin-top:0.5rem;"><span class="detail-label">Taglia Maglietta</span><span class="detail-value">${result.pilotDetails.shirt}</span></div>`;
           }
@@ -593,6 +824,10 @@
           } else {
             html += `<p style="font-size:0.875rem; color:var(--ink-3); font-style:italic; margin:0;">Nessun pasto prenotato</p>`;
           }
+          
+          // Box panino/bibita per il passeggero (usa lo stesso codice + -P)
+          html += renderMealDetail(result.passengerDetails, 'Passeggero', baseCode + '-P', result.passengerName || '');
+          
           if (result.passengerDetails.shirt) {
             html += `<div class="detail-row" style="margin-top:0.5rem;"><span class="detail-label">Taglia Maglietta</span><span class="detail-value">${result.passengerDetails.shirt}</span></div>`;
           }
@@ -627,7 +862,7 @@
       
       if (result.status === 'ok') {
         setTimeout(() => {
-          if (!document.getElementById('resultBox').classList.contains('hidden')) {
+          if (!document.getElementById('resultBox').classList.contains('hidden') && !mealModalIsOpen) {
             resetScanner();
           }
         }, 3000);
@@ -735,6 +970,87 @@
         setTimeout(() => osc.stop(), 100);
       } catch (e) {}
     }
+
+    // ===== MODALE MODIFICA PASTO =====
+
+    function openMealModal(code, name, role, oldPanino, oldBibita) {
+      mealModalCode = code;
+      mealModalName = name;
+      mealModalRole = role;
+      mealModalOldPanino = oldPanino;
+      mealModalOldBibita = oldBibita;
+      mealModalIsOpen = true;
+
+      document.getElementById('mealModalPerson').textContent = name + ' (' + role + ')';
+      document.getElementById('mealModalPanino').value = oldPanino || '';
+      document.getElementById('mealModalBibita').value = oldBibita || '';
+      document.getElementById('mealModalError').classList.add('hidden');
+      document.getElementById('mealModalConfirm').disabled = false;
+      document.getElementById('mealModalConfirm').textContent = 'Conferma Modifica';
+      document.getElementById('mealModal').classList.remove('hidden');
+    }
+
+    function closeMealModal() {
+      mealModalIsOpen = false;
+      document.getElementById('mealModal').classList.add('hidden');
+    }
+
+    async function confirmMealUpdate() {
+      const nuovoPanino = document.getElementById('mealModalPanino').value;
+      const nuovaBibita = document.getElementById('mealModalBibita').value;
+      const errBox = document.getElementById('mealModalError');
+      const btn = document.getElementById('mealModalConfirm');
+
+      errBox.classList.add('hidden');
+
+      if (!nuovoPanino || !nuovaBibita) {
+        errBox.textContent = 'Seleziona sia panino che bibita.';
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      if (nuovoPanino === mealModalOldPanino && nuovaBibita === mealModalOldBibita) {
+        // Nessuna modifica reale
+        closeMealModal();
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Salvataggio...';
+
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'updateMeal',
+            code: mealModalCode,
+            panino: nuovoPanino,
+            bibita: nuovaBibita
+          })
+        });
+        const result = await response.json();
+
+        if (result.status === 'updated') {
+          closeMealModal();
+          // Rilegge il codice corrente per aggiornare la card
+          await verificaDaLista(currentCode);
+        } else {
+          errBox.textContent = result.message || 'Errore durante il salvataggio.';
+          errBox.classList.remove('hidden');
+          btn.disabled = false;
+          btn.textContent = 'Conferma Modifica';
+        }
+      } catch (err) {
+        errBox.textContent = 'Errore di connessione: ' + err.message;
+        errBox.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Conferma Modifica';
+      }
+    }
+
+    // Carica le liste all'avvio
+    loadMealLists();
   </script>
 </body>
 </html>
